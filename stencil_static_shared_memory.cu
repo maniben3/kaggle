@@ -110,7 +110,7 @@ int main(int argc, char** argv)
     constexpr int const block_size{1024};
     constexpr int const grid_size{(valid_array_size + block_size - 1) /
                                   block_size};
-    constexpr int const radius{1025};
+    constexpr int const radius{6000};
 
     int const array_size{valid_array_size + 2 * radius};
     std::vector<int> const h_in(array_size, 1);
