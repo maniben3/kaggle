@@ -33,7 +33,7 @@ template <int BLOCK_SIZE = 1024, int RADIUS = 5>
 __global__ void stencil_1d_kernel(int const* d_in, int* d_out,
                                   int valid_array_size)
 {
-    __shared__ int temp[BLOCK_SIZE + 2 * RADIUS];
+    extern __shared__ int temp[];
 
     // This has to be int because we will use negative indices.
     int const gindex{static_cast<int>(threadIdx.x + blockIdx.x * blockDim.x)};
@@ -131,8 +131,13 @@ int main(int argc, char** argv)
     CHECK_CUDA_ERROR(cudaMemcpy(d_out, h_out.data(), array_size * sizeof(int),
                                 cudaMemcpyHostToDevice));
 
-    stencil_1d_kernel<block_size, radius><<<grid_size, block_size>>>(
-        d_in + radius, d_out + radius, valid_array_size);
+    int const sharedMemoryBytes{(block_size + radius * 2) * sizeof(int)};
+    CHECK_CUDA_ERROR(cudaFuncSetAttribute(
+        stencil_1d_kernel<block_size, radius>,
+        cudaFuncAttributeMaxDynamicSharedMemorySize, sharedMemoryBytes));
+    stencil_1d_kernel<block_size, radius>
+        <<<grid_size, block_size, sharedMemoryBytes>>>(
+            d_in + radius, d_out + radius, valid_array_size);
     CHECK_LAST_CUDA_ERROR();
 
     CHECK_CUDA_ERROR(cudaDeviceSynchronize());
